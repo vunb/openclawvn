@@ -1,0 +1,128 @@
+# ============================================================
+# OpenClaw Vietnam Edition — Docker Compose
+# ============================================================
+# Sử dụng:
+#   cp .env.vietnam.example .env
+#   # Điền các giá trị trong .env
+#   docker compose -f docker-compose.vietnam.yml up -d
+#
+# Hoặc dùng script tự động:
+#   bash docker-setup.sh          # build + onboard + start
+# ============================================================
+
+services:
+  # ── Gateway (luôn chạy) ──────────────────────────────────
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      NODE_ENV: production
+
+      # Auth
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+
+      # AI Providers
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      # Claude Web Session (tuỳ chọn)
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+
+      # Telegram
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+
+      # Zalo OA
+      ZALO_APP_ID: ${ZALO_APP_ID:-}
+      ZALO_SECRET_KEY: ${ZALO_SECRET_KEY:-}
+      ZALO_REFRESH_TOKEN: ${ZALO_REFRESH_TOKEN:-}
+
+      # Zalo Personal
+      ZALO_BOT_PHONE: ${ZALO_BOT_PHONE:-}
+
+      # TTS (ElevenLabs, tuỳ chọn)
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      XI_API_KEY: ${ELEVENLABS_API_KEY:-}
+
+      # Search
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+
+      # Browser automation
+      BROWSERLESS_API_KEY: ${BROWSERLESS_API_KEY:-}
+
+      # Eldercare — Home Assistant
+      HA_URL: ${HA_URL:-}
+      HA_TOKEN: ${HA_TOKEN:-}
+
+      # Eldercare — Tablet
+      TABLET_IP: ${TABLET_IP:-}
+      TABLET_FULLY_KIOSK_PASSWORD: ${TABLET_FULLY_KIOSK_PASSWORD:-}
+
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-~/.openclaw}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-~/.openclaw/workspace}:/home/node/.openclaw/workspace
+
+    ports:
+      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+
+    init: true
+    restart: unless-stopped
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:18789/health', r => process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    command:
+      [
+        "node",
+        "dist/index.js",
+        "gateway",
+        "--bind",
+        "${OPENCLAW_GATEWAY_BIND:-lan}",
+        "--port",
+        "${OPENCLAW_GATEWAY_PORT:-18789}",
+      ]
+
+  # ── CLI (chạy lệnh một lần, không keep-alive) ─────────────
+  openclaw-cli:
+    image: ${OPENCLAW_IMAGE:-openclaw:local}
+    environment:
+      HOME: /home/node
+      TERM: xterm-256color
+      BROWSER: echo
+
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
+
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      ZALO_APP_ID: ${ZALO_APP_ID:-}
+      ZALO_SECRET_KEY: ${ZALO_SECRET_KEY:-}
+      ZALO_REFRESH_TOKEN: ${ZALO_REFRESH_TOKEN:-}
+
+    volumes:
+      - ${OPENCLAW_CONFIG_DIR:-~/.openclaw}:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_DIR:-~/.openclaw/workspace}:/home/node/.openclaw/workspace
+
+    stdin_open: true
+    tty: true
+    init: true
+    entrypoint: ["node", "dist/index.js"]
