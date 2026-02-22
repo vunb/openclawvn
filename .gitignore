@@ -76,6 +76,8 @@ USER.md
 .env
 .env.*
 !.env.example
+!.env.vietnam.example
+!.env.eldercare.example
 *.pem
 *.key
 *.crt
